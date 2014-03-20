@@ -19,25 +19,45 @@
 //    EDOBindingSoapBinding *binding = [EDOBindingSoapBinding
     EDOBindingSoapBinding *binding = [EDOServiceSvc EDOBindingSoapBinding];
     EDOBindingSoapBindingResponse *response;
-    EDOBindingSoapBinding_getTask* request = [[EDOBindingSoapBinding_getTask alloc] init];
-//    request.
-    response = [binding getTaskUsingGetTask:(app_TGetTask *)];
-    
-    
-    
-    
-    CurrencyConvertorSoapBinding* binding = [CurrencyConvertorSvcCurrencyConvertorSoapBinding];
-    CurrencyConvertorSoapBindingResponse* response;
-    CurrencyConvertorSvc_ConversionRate* request = [[CurrencyConvertorSvc_ConversionRate alloc]init];
-    request.FromCurrency =  CurrencyConvertorSvc_Currency_enumFromString(self.fromCurrencyTextField.text);
-    request.ToCurrency = CurrencyConvertorSvc_Currency_enumFromString(self.toCurrencyTextField.text );
-    response = [binding ConversionRateUsingParameters:request];
+    app_TGetTask* request = [[app_TGetTask alloc] init];
+    response = [binding getTaskUsingGetTask:request];
     
     dispatch_async(dispatch_get_main_queue(), ^{
         [self processResponse:response];
     });
     
     return YES;
+}
+
+
+-(void) processResponse: (EDOBindingSoapBindingResponse*)soapResponse
+{
+    NSArray *responseBodyParts = soapResponse.bodyParts;
+    id bodyPart;
+    @try{
+        bodyPart = [responseBodyParts objectAtIndex:0]; // Assuming just 1 part in response which is fine
+        
+    }
+    @catch (NSException* exception)
+    {
+        UIAlertView* alert = [[UIAlertView alloc]initWithTitle:@"Server Error"message:@"Error while trying to process request"delegate:self cancelButtonTitle:@"OK"otherButtonTitles: nil];
+        [alert show];
+        return;
+    }
+    
+    if ([bodyPart isKindOfClass:[SOAPFault class]]) {
+        
+        NSString* errorMesg = ((SOAPFault *)bodyPart).simpleFaultString;
+        UIAlertView* alert = [[UIAlertView alloc]initWithTitle:@"Server Error"message:errorMesg delegate:self cancelButtonTitle:@"OK"otherButtonTitles: nil];
+        [alert show];
+    }
+    else if([bodyPart isKindOfClass:[CurrencyConvertorSvc_ConversionRateResponseclass]]) {
+        CurrencyConvertorSvc_ConversionRateResponse* rateResponse = bodyPart;
+        UIAlertView* alert = [[UIAlertViewalloc]initWithTitle:@"Success!"message:[NSStringstringWithFormat:@"Currency Conversion Rate is %@",rateResponse.ConversionRateResult] delegate:selfcancelButtonTitle:@"OK"otherButtonTitles: nil];
+        [alert show];
+        
+    }
+    
 }
 							
 - (void)applicationWillResignActive:(UIApplication *)application
